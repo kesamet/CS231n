@@ -25,9 +25,8 @@ def affine_forward(x, w, b):
     # TODO: Implement the affine forward pass. Store the result in out. You   #
     # will need to reshape the input into rows.                               #
     ###########################################################################
-    num_train = x.shape[0]
-    x_reshape = x.reshape(num_train, -1)
-    out = np.dot(x_reshape, w) + b
+    N = x.shape[0]
+    out = np.dot(x.reshape(N, -1), w) + b
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -55,10 +54,9 @@ def affine_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the affine backward pass.                               #
     ###########################################################################
-    num_train = x.shape[0]
-    x_reshape = x.reshape(num_train, -1)
-    dw = np.dot(x_reshape.T, dout)
+    N = x.shape[0]
     dx = np.dot(dout, w.T).reshape(x.shape)
+    dw = np.dot(x.reshape(N, -1).T, dout)
     db = np.sum(dout, axis=0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -104,8 +102,7 @@ def relu_backward(dout, cache):
     ###########################################################################
     # TODO: Implement the ReLU backward pass.                                 #
     ###########################################################################
-    dx = dout.copy()
-    dx[x < 0] = 0
+    dx = np.where(x > 0, dout, 0)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
@@ -175,6 +172,7 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         # variance, storing your result in the running_mean and running_var   #
         # variables.                                                          #
         #######################################################################
+        # Compute output
         sample_mean = np.mean(x, axis=0)
         x_shift = x - sample_mean
         x_sq = x_shift ** 2
@@ -184,8 +182,11 @@ def batchnorm_forward(x, gamma, beta, bn_param):
         xhat = x_shift * inv_std
         xhat_scaled = xhat * gamma 
         out = xhat_scaled + beta
+        
+        #Update running mean and variance
         running_mean = momentum * running_mean + (1 - momentum) * sample_mean
         running_var = momentum * running_var + (1 - momentum) * sample_var
+        
         cache = (x, gamma, bn_param, x_shift, xhat, sample_var, sample_std, 
                  inv_std, out)
         #######################################################################
@@ -596,8 +597,8 @@ def spatial_batchnorm_forward(x, gamma, beta, bn_param):
     # be very short; ours is less than five lines.                            #
     ###########################################################################
     N, C, H, W = x.shape
-    x1 = np.rollaxis(x, 1, 4).reshape(-1, C)
-    out1, cache = batchnorm_forward(x1, gamma, beta, bn_param)
+    x_flat = np.rollaxis(x, 1, 4).reshape(-1, C)
+    out_flat, cache = batchnorm_forward(x_flat, gamma, beta, bn_param)
     out = np.rollaxis(out1.reshape(N, H, W, C), 3, 1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
@@ -629,9 +630,9 @@ def spatial_batchnorm_backward(dout, cache):
     # be very short; ours is less than five lines.                            #
     ###########################################################################
     N, C, H, W = dout.shape
-    dout1 = np.rollaxis(dout, 1, 4).reshape(-1, C)
-    dx1, dgamma, dbeta = batchnorm_backward_alt(dout1, cache)
-    dx = np.rollaxis(dx1.reshape(N, H, W, C), 3, 1)
+    dout_flat = np.rollaxis(dout, 1, 4).reshape(-1, C)
+    dx_flat, dgamma, dbeta = batchnorm_backward_alt(dout_flat, cache)
+    dx = np.rollaxis(dx_flat.reshape(N, H, W, C), 3, 1)
     ###########################################################################
     #                             END OF YOUR CODE                            #
     ###########################################################################
